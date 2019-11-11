@@ -1,0 +1,450 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<style>  
+    div.padded {  
+      padding-top: 0px;  
+      padding-right: 100px;  
+      padding-bottom: 0.25in;  
+      padding-left: 100px;  
+    }  
+  </style> 
+<title>JIYUAN LU  |  CS 184 chestnut</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="style.css" media="screen" />
+</head>
+<body>
+<br />
+<h1 align="middle">Assignment 3: PathTracer</h1>
+    <h2 align="middle">JIYUAN LU</h2>
+
+    <div class="padded">
+        <p>In this project, I explored ray generation, ray-scene intersection, acceleration, direct and indirect lighting(global illumination), and adaptive sampling. As I work through the project, I am very excited to see different implementations not only speed up the rendering process, but also improve the qualities of the image. </p>
+
+    <h2 align="middle">Part 1: Ray Generation and Intersection</h2>
+        <p>(1)Walk through the ray generation and primitive intersection parts of the rendering pipeline.</p>
+        <p>Answer: To generate rays, we need to compute the origin and direction of the ray in Camera::generate_ray function. The ray formula is given by ray = o + t * d. Where o is a vector representing the origin, t is a scalar representing the travelling time along direction d, and d is the direction the ray is travelling towards. The origin of the ray is where the camera is in the world space. The direction is determined by random sampling on the image plane. Time t shows when the ray intersects with primitives in the world space. We want to transform the x, y coordinates which are ranged between [0, 1] into a point in the image plane. So we want the bottom left to be (0, 0) and top right to be (1, 1) on the plane. The corresponding x, y can be calculated with: 
+        <p align="middle"><pre align="middle">X = bottom_left.x + (top_right.x - bottom_left.x) * x</pre></p>
+        <p align="middle"><pre align="middle">Y = bottom_left.y + (top_right.y - bottom_left.y) * y</pre></p>
+        The camera looks along the -z axis, and I set the image plane to be 1 unit length in front of the camera. This will be the ray in camera space. Multiply it by c2w matrix will transform it into world space. For each pixel, we want to sample ns_aa random rays at different locations on the image plane and take the average of them to cast it to the pixel. Or we can cast a single ray to the center of the pixel.</p>
+
+        <p>(2)Explain the triangle intersection algorithm you implemented in your own words.</p>
+        <p>Answer: I used Möller-Trumbore algorithm to detect ray-triangle intersection. The intersect point is defined as:
+        <p align="middle"><pre align="middle">P = wA + uB + vC</pre></p>
+        where w, u, v are the barycentric coordinates and A, B, C are the triangles vertices, with condition <code> w + u + v = 1 </code>. We also have the ray equation:
+        <p align="middle"><pre align="middle">P = O + tD</pre></p>
+        where t is the distance from the ray's origin to the intersection point P. Using this two equations, we can compute t, w, u, v using Crammer's rule. To check if the intersection is valid, I checked if u, v are between [0, 1], u + v <= 1 and if t is within [min_t, max_t]. </p>
+        <p>(3)Show the normal shading for a few small dae files.</p>
+        <p>Answer: The pictures are shown below:</p>
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                    <br>
+                        <td align="middle">
+                        <img src="part1/gem.png" width="480px" />
+                        <figcaption align="middle">Gem.</figcaption>
+                    </br>
+                    <br>
+                        <td align="middle">
+                        <img src="part1/teapot.png" width="480px" />
+                        <figcaption align="middle">Teapot.</figcaption>
+                    </br>
+                </tr>
+                 <tr>
+                    <br>
+                        <td align="middle">
+                        <img src="part1/cow.png" width="480px" />
+                        <figcaption align="middle">Cow.</figcaption>
+                    </br>
+                    <br>
+                        <td align="middle">
+                        <img src="part1/sphere.png" width="480px" />
+                        <figcaption align="middle">Sphere.</figcaption>
+                    </br>
+                </tr>
+                <tr>
+                    <br>
+                        <td align="middle">
+                        <img src="part1/banana.png" width="480px" />
+                        <figcaption align="middle">Banana.</figcaption>
+                    </br>
+                </tr>
+            </table>
+        </div>
+        
+
+     <h2 align="middle">Part 2: Bounding Volume Hierarchy</h2>
+
+        <p>(1)Walk through your BVH construction algorithm. Explain the heuristic you chose for picking the splitting point.</p>
+        <p>Answer: BVH is a square box structure allows us to test ray intersection with axis-aligned planes rather then evey single primitives in the scene. First, I pick the greatest dimension in to split the object by comparing x, y, z axis values. Let say we choose x here. I then split the primitives into two vectors where prims1 has primitive's centroid less than centroid_box on x, otherwise storing in prims2. I recursive call construct_bvh on the left and right node to split up the primitives. When the case that all the primitives assign to the same vector, I split them in half by their midpoint on x. This prevents the infinite recursive call on the same primitive vector.</p>
+
+        <p>(2)Walk through your BVH intersection algorithm.</p>
+        <p>Answer: We use the bounding box to test if a ray intersects the primitive. I take the maximum of the min x, y, z as tmin, and take the minimum of the max x, y, z as tmax. There is no intersection when it is one of the below cases:
+            <p align="middle"><pre align="middle">tmin > tmax</pre></p>
+            <p align="middle"><pre align="middle">tmin > ray.max_t</pre></p>
+            <p align="middle"><pre align="middle">tmax < ray.min_t</pre></p>
+            We avoid checking every primitive in the scene by checking if the ray hits the BVH's bounding box. If it does intersect with bounding box, we check if it is a leaf node. If it is, we just need to check every primitives in the box and see if there is a hit. If it is not a leaf node, we traverse the left and right node by recursively calling BVH intersect function on its children.</p>
+
+        <p>(3)Show the normal shading for a few large dae files that you couldn't render without the acceleration structure.</p>
+        <p>Answer: Now I can render these large dae files:</p>
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                    <br>
+                        <td align="middle">
+                        <img src="part2/angel.png" width="480px" />
+                        <figcaption align="middle">Angel.</figcaption>
+                    </br>
+                    <br>
+                        <td align="middle">
+                        <img src="part2/beast.png" width="480px" />
+                        <figcaption align="middle">Beast.</figcaption>
+                    </br>
+                </tr>
+                 <tr>
+                    <br>
+                        <td align="middle">
+                        <img src="part2/blob.png" width="480px" />
+                        <figcaption align="middle">Blob.</figcaption>
+                    </br>
+                    <br>
+                        <td align="middle">
+                        <img src="part2/building.png" width="480px" />
+                        <figcaption align="middle">Building.</figcaption>
+                    </br>
+                </tr>
+                <tr>
+                    <br>
+                        <td align="middle">
+                        <img src="part2/max.png" width="480px" />
+                        <figcaption align="middle">Max.</figcaption>
+                    </br>
+                    <br>
+                        <td align="middle">
+                        <img src="part2/wall.png" width="480px" />
+                        <figcaption align="middle">Wall.</figcaption>
+                    </br>
+                </tr>
+            </table>
+        </div>
+        
+
+        <p>(4)Perform some rendering speed experiments on the scenes, and present your results and a 1-paragraph analysis.</p>
+        <p>Answer: I compared the rendering speed of 5 .dae files: gem, teapot, cow, banana, sphere. The speed increases dramatically for complicated scenes(having large number of primitives). These include gem (49.3818s) -> 1.0145s, teapot (618.0401s) -> 1.3548s,  cow (1784.1391s) -> 1.5510s, banana (606.1208s) -> 0.9626s. For simpler scenes like CBsphere.dae (3.9614s) -> 0.7060s, the acceleration is not as significant as the previous four scenes. </p>
+
+<h2 align="middle">Part 3: Direct Illumination</h2>
+        <p>Describe what you did in Part 3.</p>
+        <p>Answer: In this part, we want to see the effect of only direct lighting on the scene. I implemented two direct sampling functions: uniform hemisphere sampling and lighting sampling.  </p>
+    
+
+        <p>(1)Walk through both implementations of the direct lighting function.</p>
+        <p>Answer: For uniform hemisphere sampling, we sample the incident ray at a hit point randomly since we don't know the position of the light source. If the ray intersects with some objects in the scene, we caculate how much light is emitting from that intersection point and scale it to get its contribution to our primary ray(output ray from hit point). If the incident ray doesn't intersect with any object, we discard this sample. For lighting sampling, I create a shadow ray whose origin is at the hit point(actually, we add a small offset to avoid frequently intersecting the same triangle at the same spot again and again because of floating point imprecision.) to see if it intersect with any objects before it reaches the location of the light currently is sampling. If a light is delta light, all the samples fall on the same location. So I just take one sample light. If it is not a delta light, I take whatever number of samples we want by pass it in the command line. If the sample ray does hit an object, we discard this sample. If it doesn't intersect with any object, we calculate the bsdf value and multiplied by w_in.z divide by probability, and add the final value to the sum of the samples. For each light, I take average of all the samples that don't intersect with any object and add it to the final L_out.  </p>
+
+        <p>(2)Show some images rendered with both implementations of the direct lighting function.</p>
+        <p>Answer: The images are shown below:</p>
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                    <br>
+                        <td align="middle">
+                        <img src="part3/CBbunny_16_8.png" width="480px" />
+                        <figcaption align="middle"> Bunny with uniform hemisphere sampling, s = 16, l = 8 .</figcaption>
+                    </br>
+                    <br>
+                        <td align="middle">
+                        <img src="part3/CBbunny_64_32.png" width="480px" />
+                        <figcaption align="middle"> Bunny with uniform hemisphere sampling, s = 64, l = 32 .</figcaption>
+                    </br>
+                </tr>
+                 <tr>
+                    <br>
+                        <td align="middle">
+                        <img src="part3/bunny_64_32.png" width="480px" />
+                        <figcaption align="middle"> Bunny with light sampling, s = 64, l = 32.</figcaption>
+                    </br>
+                    <br>
+                        <td align="middle">
+                        <img src="part3/dragon_64_32.png" width="480px" />
+                        <figcaption align="middle"> Dragon with light sampling, s = 64, l = 32.</figcaption>
+                    </br>
+                </tr>
+            </table>
+        </div>
+
+        <p>(3)Focus on one particular scene (with at least one area light) and compare the noise levels in soft shadows when rendering with 1, 4, 16, and 64 light rays (the -l flag) and 1 sample per pixel (the -s flag) using light sampling, not uniform hemisphere sampling.</p>
+        <p>Answer: Different rendering results for banana.dae:
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                    <br>
+                        <td align="middle">
+                        <img src="part3/banana_1_1.png" width="480px" />
+                        <figcaption align="middle"> s = 1, l = 1.</figcaption>
+                    </br>
+                    <br>
+                        <td align="middle">
+                        <img src="part3/banana_2_1.png" width="480px" />
+                        <figcaption align="middle"> s = 2, l = 1.</figcaption>
+                    </br>
+                </tr>
+                 <tr>
+                    <br>
+                        <td align="middle">
+                        <img src="part3/banana_4_1.png" width="480px" />
+                        <figcaption align="middle"> s = 4, l = 1.</figcaption>
+                    </br>
+                    <br>
+                        <td align="middle">
+                        <img src="part3/banana_8_1.png" width="480px" />
+                        <figcaption align="middle"> s = 8, l = 1.</figcaption>
+                    </br>
+                </tr>
+                <tr>
+                    <br>
+                        <td align="middle">
+                        <img src="part3/banana_16_1.png" width="480px" />
+                        <figcaption align="middle"> s = 16, l = 1.</figcaption>
+                    </br>
+                    <br>
+                        <td align="middle">
+                        <img src="part3/banana_64_1.png" width="480px" />
+                        <figcaption align="middle"> s = 64, l = 1.</figcaption>
+                    </br>
+                </tr>
+            </table>
+        </div>
+
+        <p>(4)Compare the results between using uniform hemisphere sampling and lighting sampling, including a 1-paragraph analysis.</p>
+        <p>Answer: Uniform sampling takes high samples_per_pixel and high ray_per_pixel to converge(Otherwise it has a lot of noise). However, lighting sampling has little noise even if with low samples_per_pixel and low ray_per_pixel. Using uniform hemisphere sampling and lighting sampling on bunny.dae. Results are shown below.</p>
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                    <br>
+                        <td align="middle">
+                        <img src="part3/CBbunny_128_64.png" width="480px" />
+                        <figcaption align="middle"> Uniform hemisphere sampling, s = 128, l = 64.</figcaption>
+                    </br>
+                    <br>
+                        <td align="middle">
+                        <img src="part3/bunny_128_64.png" width="480px" />
+                        <figcaption align="middle"> Lighting sampling, s = 128, l = 64.</figcaption>
+                    </br>
+                </tr>
+                 <tr>
+                    <br>
+                        <td align="middle">
+                        <img src="part3/CBbunny_64_32.png" width="480px" />
+                        <figcaption align="middle"> Uniform hemisphere sampling, s = 64, l = 32.</figcaption>
+                    </br>
+                    <br>
+                        <td align="middle">
+                        <img src="part3/bunny_64_32.png" width="480px" />
+                        <figcaption align="middle"> Lighting sampling, s = 64, l = 32.</figcaption>
+                    </br>
+                </tr>
+            </table>
+        </div>
+                
+        <h2 align="middle">Part 4: Global Illumination</h2>
+        <p>Describe what you did in Part 4.</p>
+        <p>Answer:In part 4, I combined direct illumination with indirect illumination to get global illumination effect. The difference in the implementation here compared to direct lighting is that, in addition, we sample the BSDF at the hit point and recursively trace a ray in that sample direction.</p>
+
+        <p>(2)Walk through your implementation of the indirect lighting function.Show some images rendered with global (direct and indirect) illumination. </p>
+        <p>Answer: The function est_radiance_global_illumination is called to get an estimate of the total radiance with global illumination arriving at a point from a particular direction (e.g. on the image plane and going towards the image's center of projection). The function zero_bounce_radiance should return light that results from no bounces of light, which is simply the light emitted by the given point and outgoing direction. This will be zero (black) unless the current point lies on a light.    The function one_bounce_radiance is just the direct illumination that you implemented in Part 3. You can just call your direct lighting function that uses importance sampling of the lights. The function at_least_one_bounce_radiance is the main implementation work for this Part 4. At a high level, it should call the one_bounce_radiance function, and then recursively call itself to estimate the higher bounces. This recursive call should take one random sample from the BSDF at the hit point, trace a ray in that sample direction, and recursively call itself on the new hit point. We set a parameter max_ray_depth to control the maximum levels of recursions. However, with some probability, rays might still go into deeper recursions to improve performance, and I use Russian Roulette to terminate the rays. Pictures shown below.</p>
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                    <br>
+                        <td align="middle">
+                        <img src="part4/banana_g_64_32.png" width="480px" />
+                        <figcaption align="middle"> Banana.</figcaption>
+                    </br>
+                    <br>
+                        <td align="middle">
+                        <img src="part4/spheres_s1024.png" width="480px" />
+                        <figcaption align="middle"> Spheres.</figcaption>
+                    </br>
+                </tr>
+                 <tr>
+                    <br>
+                        <td align="middle">
+                        <img src="part4/CBbunny_m100.png" width="480px" />
+                        <figcaption align="middle"> Bunny.</figcaption>
+                    </br>
+                    <br>
+                        <td align="middle">
+                        <img src="part4/building_64_32.png" width="480px" />
+                        <figcaption align="middle"> Building.</figcaption>
+                    </br>
+                </tr>
+            </table>
+        </div>
+
+        <p>(3)Pick one scene and compare rendered views first with only direct illumination, then only indirect illumination. (You'll have to edit at_least_one_bounce_radiance in your code to generate these.</p>
+        <p>Answer: Results for banana.dae</p>
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                    <br>
+                        <td align="middle">
+                        <img src="part4/banana_16_8.png" width="480px" />
+                        <figcaption align="middle"> Direct illumination. s = 16, l = 8.</figcaption>
+                    </br>
+                    <br>
+                        <td align="middle">
+                        <img src="part4/banana_i_16_8.png" width="480px" />
+                        <figcaption align="middle"> Indirect illumination. s = 16, l = 8.</figcaption>
+                    </br>
+                </tr>
+                 <tr>
+                    <br>
+                        <td align="middle">
+                        <img src="part4/banana_32_16.png" width="480px" />
+                        <figcaption align="middle"> Direct illumination. s = 32, l = 16.</figcaption>
+                    </br>
+                    <br>
+                        <td align="middle">
+                        <img src="part4/banana_i_32_16.png" width="480px" />
+                        <figcaption align="middle"> Indirect illumination. s = 32, l = 16.</figcaption>
+                    </br>
+                </tr>
+                <tr>
+                    <br>
+                        <td align="middle">
+                        <img src="part4/banana_64_32.png" width="480px" />
+                        <figcaption align="middle"> Direct illumination. s = 64, l = 32.</figcaption>
+                    </br>
+                    <br>
+                        <td align="middle">
+                        <img src="part4/banana_i_64_32.png" width="480px" />
+                        <figcaption align="middle"> Indirect illumination. s = 64, l = 32.</figcaption>
+                    </br>
+                </tr>
+            </table>
+        </div>
+       
+
+        <p>(4)For CBbunny.dae, compare rendered views with max_ray_depth equal to 0, 1, 2, 3, and 100 (the -m flag).</p>
+        <p>Answer: Shown below.</p>
+
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                    <br>
+                        <td align="middle">
+                        <img src="part4/CBbunny_m0.png" width="480px" />
+                        <figcaption align="middle">max_rap_depth = 0.</figcaption>
+                    </br>
+                    <br>
+                        <td align="middle">
+                        <img src="part4/CBbunny_m1.png" width="480px" />
+                        <figcaption align="middle">max_rap_depth = 1.</figcaption>
+                    </br>
+                </tr>
+                 <tr>
+                    <br>
+                        <td align="middle">
+                        <img src="part4/CBbunny_m2.png" width="480px" />
+                        <figcaption align="middle">max_rap_depth = 2.</figcaption>
+                    </br>
+                    <br>
+                        <td align="middle">
+                        <img src="part4/CBbunny_m3.png" width="480px" />
+                        <figcaption align="middle">max_rap_depth = 3.</figcaption>
+                    </br>
+                </tr>
+                <tr>
+                    <br>
+                        <td align="middle">
+                        <img src="part4/CBbunny_m100.png" width="480px" />
+                        <figcaption align="middle">max_rap_depth = 100.</figcaption>
+                    </br>
+                </tr>
+            </table>
+        </div>
+
+
+        <p>(5)Pick one scene and compare rendered views with various sample-per-pixel rates, including at least 1, 2, 4, 8, 16, 64, and 1024. Use 4 light rays.</p>
+        <p>Answer: Shown below.</p>
+
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                    <br>
+                        <td align="middle">
+                        <img src="part4/spheres_s1.png" width="480px" />
+                        <figcaption align="middle">sample-per-pixel = 1.</figcaption>
+                    </br>
+                    <br>
+                        <td align="middle">
+                        <img src="part4/spheres_s2.png" width="480px" />
+                        <figcaption align="middle">sample-per-pixel = 2.</figcaption>
+                    </br>
+                </tr>
+                 <tr>
+                    <br>
+                        <td align="middle">
+                        <img src="part4/spheres_s4.png" width="480px" />
+                        <figcaption align="middle">sample-per-pixel = 4.</figcaption>
+                    </br>
+                    <br>
+                        <td align="middle">
+                        <img src="part4/spheres_s8.png" width="480px" />
+                        <figcaption align="middle">sample-per-pixel = 8.</figcaption>
+                    </br>
+                </tr>
+                <tr>
+                    <br>
+                        <td align="middle">
+                        <img src="part4/spheres_s16.png" width="480px" />
+                        <figcaption align="middle">sample-per-pixel = 16.</figcaption>
+                    </br>
+                    <br>
+                        <td align="middle">
+                        <img src="part4/spheres_s64.png" width="480px" />
+                        <figcaption align="middle">sample-per-pixel = 64.</figcaption>
+                    </br>
+                </tr>
+                <tr>
+                    <br>
+                        <td align="middle">
+                        <img src="part4/spheres_s1024.png" width="480px" />
+                        <figcaption align="middle">sample-per-pixel = 1024.</figcaption>
+                    </br>
+                </tr>
+            </table>
+        </div>
+       
+
+        <h2 align="middle">Part 5: Adaptive Sampling</h2>
+
+        <p>(1)Walk through your implementation of the adaptive sampling.</p>
+    
+        <p>Answer: In this part, I implemented adaptive sampling. Its very straight forward, its mostly about math. I check if I is less then or equal to maxTolerance * mu. If it is, the pixel has converged and I break the loop. If not, it continue to get more samples.</p>
+
+        <p>(2)Pick one scene and render it with the maximum number of samples per pixel at least 2048. Show a good sampling rate image with clearly visible sampling rate difference over various regions and pixels. Include both your sample rate image (which shows your how your adaptive sampling changes depending on which part of the image we are rendering) and your noise-free rendered result. Use 1 sample per light and at least 5 for max ray depth.</p>
+        <p>Answer: Results for CBbunny.dae. Parameters same as given in spec.</p>
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                    <br>
+                        <td align="middle">
+                        <img src="part5/bunny.png" width="480px" />
+                        <figcaption align="middle">Bunny.</figcaption>
+                    </br>
+                    <br>
+                        <td align="middle">
+                        <img src="part5/bunny_rate.png" width="480px" />
+                        <figcaption align="middle">Bunny rate.</figcaption>
+                    </br>
+                </tr>
+            </table>
+        </div>
+
+</div>
+</body>
+</html>
+
+
+
+

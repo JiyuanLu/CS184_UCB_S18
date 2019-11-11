@@ -1,0 +1,87 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+    <style>
+        div.padded {
+            padding-top: 0px;
+            padding-right: 100px;
+            padding-bottom: 0.25in;
+            padding-left: 100px;
+        }
+    </style>
+    <title>Final Project Proposal| CS 184</title>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+    <link rel="stylesheet" type="text/css" href="style.css" media="screen"/>
+</head>
+<body>
+<br/>
+
+<!-- Title, Summary and Team Members -->
+<h1 align="middle">Final Project Proposal - Light Field Camera</h1>
+<br>
+<div class="padded" style="font-size:120%">
+    <h3 align="middle">Members</h3>
+    <p align="middle">Name: JIYUAN LU &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp SID: 3033483733</p>
+    <p align="middle">Name: RENJIE SHAO &nbsp &nbsp &nbsp &nbsp SID: 3033530192</p>
+    <p align="middle">Name: NAN WEI &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp SID: 3033530205</p>
+    <h3 align="middle">Summary</h3>
+    <p>
+        Conventional camera captures light intensity and color to form a picture. However, some information is ignored during this process, such like the distribution of light from different direction. With this information, we can change the depth of field without adjusting and retaking the photo. This project aims to collect and store the information while rendering and provide a GUI which can show the picture with different light field in real-time.
+    </p>
+
+    <!-- Problem Description -->
+    <h3 align="middle">Problem Description</h3>
+    <p>
+        A light field camera stores additional information to support adjusting the depth of field after taking the photo. Based on project 3, we can add on this support by storing the additional information while rendering. This information is quite useful because we can reconstruct a picture with different depth of field by using it. The challenging part is how to represent the light field and how to use it to refocus. The main idea is to use a gird to instead pixel. By this way, we not only record the color and intensity of light, but also its direction. In this case, the sensor plane becomes a microlens array.
+    </p>
+
+    <div align="center">
+        <img src="images/light_field.png" width="800px"/>
+        <figcaption align="middle">The schematic of light field camera <br>
+            <a href="https://graphics.stanford.edu/papers/lfcamera/lfcamera-150dpi.pdf">Light Field Photography with a Hand-held Plenoptic Camera</a></figcaption>
+    </div>
+
+    <p>
+        Suppose the Main lens plane is <code>uv</code> and the microlens plane is <code>st</code>, then the light function can be represented as <code>L(u, v, s, t)</code>. We can calculate this function by using the grid. For refocusing, <code>u, v</code> will change, while we can still use this function to calculate the light reach the sensor plane.
+    </p>
+
+
+    <!-- Goals and Deliverables -->
+    <h3 align="middle">Goals and Deliverables</h3>
+    <h4 >Basic goals</h4>
+	<p>
+	We plan to simulate a light field camera so that we can adjust aperture and refocus after the scene has already been rendered. To accomplish this, we need to capture more light information than just the radiance at each pixel. Instead of 2D photograph, we have to store the 4D light field. Light field can be represented as a function L(u,v,s,t). Our goal is to render light field images that store this L function so that we can refocus after the scene is rendered. In addition, we plan to implement a GUI with which users can adjust aperture and refocus the rendered image and observe the effect in real time.
+	</p>
+    <h4 >Some further thoughts</h4>
+	<p>
+	Since we need to capture richer information, light field images will cost much more space and time to render. Therefore, efficiency becomes a problem. We can implement our project on GPU or try some other ways to improve efficiency.
+	</p>
+    <br>
+
+    <!-- Schedule  -->
+    <h3 align="middle">Schedule</h3>
+    <h4> Week 1 &nbsp &nbsp 4.2-4.8</h4>
+    <p>Todo: Figure out what data structures to use and how to capture light field</p>
+    <h4> Week 2 &nbsp &nbsp 4.9-4.15</h4>
+    <p>Todo: Implement our thoughts in first week and implement functions to change aperture and refocus</p>
+    <h4> Week 3 &nbsp &nbsp 4.16-4.22</h4>
+    <p>Todo: Implement GUI and try to improve efficiency</p>
+    <h4> Week 4 &nbsp &nbsp 4.23-4.30</h4>
+    <p>Todo: Prepare for final presentation.</p>
+    <h4> Week 5 &nbsp &nbsp 5.1-5.4</h4>
+    <p>Todo: Final report webpage, project video, final deliverables submission.</p>
+    <br>
+
+    <!-- Resources -->
+    <h3 align="middle">Resources</h3>
+    <p>
+        <a href="https://graphics.stanford.edu/papers/lfcamera/lfcamera-150dpi.pdf">https://graphics.stanford.edu/papers/lfcamera/lfcamera-150dpi.pdf</a>
+    </p>
+    <p>
+        <a href="https://en.wikipedia.org/wiki/Light_field">https://en.wikipedia.org/wiki/Light_field</a>
+    </p>
+    <p>
+        <a href="https://graphics.stanford.edu/papers/light/light-lores-corrected.pdf">https://graphics.stanford.edu/papers/light/light-lores-corrected.pdf</a>
+    </p>
+
+</div>

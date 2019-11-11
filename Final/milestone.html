@@ -1,0 +1,117 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+    <style>
+        div.padded {
+            padding-top: 0px;
+            padding-right: 100px;
+            padding-bottom: 0.25in;
+            padding-left: 100px;
+        }
+    </style>
+    <title>Final Project Milestone| CS 184</title>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+    <link rel="stylesheet" type="text/css" href="style.css" media="screen"/>
+</head>
+<body>
+<br/>
+
+<!-- Title, Summary and Team Members -->
+<h1 align="middle">Final Project Milestone - Light Field Camera</h1>
+<br>
+<div class="padded" style="font-size:120%">
+    <h3 align="middle">Members</h3>
+    <p align="middle">Name: JIYUAN LU &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp SID: 3033483733</p>
+    <p align="middle">Name: RENJIE SHAO &nbsp &nbsp &nbsp &nbsp SID: 3033530192</p>
+    <p align="middle">Name: NAN WEI &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp SID: 3033530205</p>
+
+    <h3 align="middle">Our Progress</h3>
+    <p>
+        Based on project 3, we are planning to make our pathtracer support light field. This require our renderer to store more information. Specifically, the pixels now will not just store the spectrum. Instead, we treat each pixel as a gird, which can not only store the spectrum from the light but also the position that light comes from. Using this new information, we can now refocus the generated 2D image.
+    </p>
+
+    <p>
+        In detail, for each pixel, we sample some points on the lens uniformly and each sample is stored apart in the grid. 
+    </p>
+
+    <div align="center">
+        <img src="images/Light_field_1.png" width="600px"/>
+        <figcaption align="middle">Light Field</figcaption>
+    </div>
+
+    <p>
+        Now suppose uv is the lens plane and st is the focal plane. Then the light function is <code>L(u, v, s, t)</code>. This function tells us the spectrum of the light travels between <code>(u, v)</code> and <code>(s, t)</code>. Note that we know the position of pixels because we store them in a 2D vector. Also we know <code>(u, v)</code> since each sample position in the lens relates to an entry of the grid belonged to that pixel. To implement refocus, we use this information to get the light fall on the pixel with new focal length.
+    </p>
+
+    <p>
+        For a new focal plane, we have:
+    </p>
+
+    <div align="center">
+        <img src="images/Light_field_2.png" width="800px"/>
+        <figcaption align="middle">Refocus</figcaption>
+    </div>
+
+    <p>
+        With simple mathematical analysis, we have:
+    </p>
+
+    <div align="center">
+        <img src="images/Light_field_3.png" width="400px"/>
+    </div>
+
+    <p>
+        Now we just need to loop over all the pixels and use this function to find the new spectrum for that pixel. 
+    </p>
+
+    <p>
+        Additionally, we have modified the sample process so that each sample is at the center of the pixel, which ensure us to determine the light direction. And we uniformly sample 16 points on the lens, rather than randomly sample points on the lens as before.
+    </p>
+
+    <p>
+        Generally, our program works in this sequence:
+    </p>
+
+    <ul>
+        <li>Load the dae image</li>
+        <li>Render</li>
+        <li>Refocus</li>
+    </ul>
+
+    <p>At present we add to keyboard event to adjust focal length: <code>H</code> to increase it by 0.1 and <code>J</code> to decrease it by 0.1.</p>
+
+    <div align="center">
+        <table>
+            <td>
+                <img src="images/Render_result.png" width="600px"/>
+                <figcaption align="middle">Render result</figcaption>
+            </td>
+            <td>
+                <img src="images/Refocus_result.png" width="600px"/>
+                <figcaption align="middle">Refocus result</figcaption>
+            </td>
+        </table>
+    </div>
+
+    <h3 align="Middle">Our Plan</h3>
+    <p>
+        We are going to make this project better. Here are what we plan to do:
+    </p>
+    <ul>
+        <li>Improve the quality of the image, decrease aliasing.</li>
+        <li>Optimize the code to make the process of refocusing faster.</li>
+        <li>Create a more friendly and powerful UI to support refocus.</li>
+    </ul>
+
+    <h3 align="Middle">Slides</h3>
+    
+    <iframe src="https://docs.google.com/presentation/d/e/2PACX-1vSuQp4LIQqkBeKIHfJ-QnidIpEV3WmYqkiWQ8fV6pCByol0fAnDuUM8dyzkVOK_xpdk2B8tMSYNA9AQ/embed?start=false&loop=false&delayms=3000" frameborder="0" width="1058" height="823" allowfullscreen="true" mozallowfullscreen="true" webkitallowfullscreen="true"></iframe>
+    
+    <h3 align="Middle">Video</h3>
+
+	<div align="center">
+        <iframe width="560" height="315" src="https://www.youtube.com/embed/F0N6Rr0utsg" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+    </div>
+</div>
+    
+             

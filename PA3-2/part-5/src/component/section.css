@@ -1,0 +1,9 @@
+.section {
+  padding-bottom: 40px;
+  margin: 20px 0;
+  border-bottom: 1px solid black;
+}
+
+.section:last-child {
+  border-bottom: none;
+}

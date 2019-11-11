@@ -1,0 +1,593 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<style>
+  body {
+    padding: 100px;
+    width: 1000px;
+    margin: auto;
+    text-align: left;
+    font-weight: 300;
+    font-family: 'Open Sans', sans-serif;
+    color: #121212;
+  }
+  h1, h2, h3, h4 {
+    font-family: 'Source Sans Pro', sans-serif;
+  }
+</style>
+<title>CS 184 Cloth Simulator</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link href="https://fonts.googleapis.com/css?family=Open+Sans|Source+Sans+Pro" rel="stylesheet">
+</head>
+
+
+<body>
+
+<h1 align="middle">CS 184: Computer Graphics and Imaging, Spring 2018</h1>
+<h1 align="middle">Project 4: Cloth Simulator</h1>
+<h2 align="middle">JIYUAN LU, CS184-chestnut</h2>
+
+<br><br>
+
+<h2 align="middle">Overview</h2>
+<p>In the project, I implemented a real-time simulation of cloth using a point masses and springs system. The cloth is divided into evenly spaced point masses and then connected by springs. The position of each of the point mass is recalculated at each time step based on the external forces. I take three constraints between point masses as STRUCTURAL, SHEARING, BENDING. I then compute the total force acting on each point mass and use Verlet integration to calculate the new position. Later on, I implement cloth collisions with sphere, plane and self collision. Self collision is the hardest part for me through out the whole project. In order to prevent cloth clip through, I implemented spatial hashing to apply a repulsive collision force to point mass if any pair of point masses are too close to each other.</p>
+
+<h2 align="middle">Part 1: Masses and springs</h2>
+
+
+<p>Take some screenshots of scene/pinned2.json from a viewing angle where you can clearly see the cloth wireframe to show the structure of your point masses and springs. </p>
+
+<div align="center">
+  <table style="width=100%">
+    <tr>
+        <br>
+            <td align="middle">
+            <img src="part1/pinned2_1.png" width="480px" />
+            <figcaption align="middle">view 1.</figcaption>
+        </br>
+        <br>
+            <td align="middle">
+            <img src="part1/pinned2_2.png" width="480px" />
+            <figcaption align="middle">view 2.</figcaption>
+        </br>
+    </tr>
+ </table>
+</div>
+
+
+<p>Show us what the wireframe looks like (1) without any shearing constraints, (2) with only shearing constraints, and (3) with all constraints.</p>
+
+<div align="center">
+  <table style="width=100%">
+    <tr>
+        <br>
+            <td align="middle">
+            <img src="part1/without_shearing.png" width="480px" />
+            <figcaption align="middle">Without shearing.</figcaption>
+        </br>
+        <br>
+            <td align="middle">
+            <img src="part1/only_shearing.png" width="480px" />
+            <figcaption align="middle">Only shearing.</figcaption>
+        </br>
+    </tr>
+    <tr>
+        <br>
+            <td align="middle">
+            <img src="part1/with_all_constraints.png" width="480px" />
+            <figcaption align="middle">With all constraints.</figcaption>
+        </br>
+    </tr>
+ </table>
+</div>
+
+
+<h2 align="middle">Part 2: Simulation via numerical integration</h2>
+
+<p>Describe the effects of changing the spring constant ks; how does the cloth behave from start to rest with a very low ks? A high ks?</p>
+
+<p>The constant ks controls the stiffness of the spring, thus the stretchiness of the cloth. The smaller the ks, the cloth is more stretched; the larger the ks, the cloth looks more flat. This is because when ks is small, the string has to be pulled apart more the cancel out the external forces(like gravity). When we increase ks, the cloth is less likely to be stretched by its own weight.</p>
+
+<div align="center">
+  <table style="width=100%">
+    <tr>
+        <br>
+            <td align="middle">
+            <img src="part2/ks=1.png" width="480px" />
+            <figcaption align="middle">ks = 1.</figcaption>
+        </br>
+        <br>
+            <td align="middle">
+            <img src="part2/ks=10.png" width="480px" />
+            <figcaption align="middle">ks = 10.</figcaption>
+        </br>
+    </tr>
+    <tr>
+        <br>
+            <td align="middle">
+            <img src="part2/ks=100.png" width="480px" />
+            <figcaption align="middle">ks = 100.</figcaption>
+        </br>
+        <br>
+            <td align="middle">
+            <img src="part2/ks=500.png" width="480px" />
+            <figcaption align="middle">ks = 500.</figcaption>
+        </br>
+    </tr>
+    <tr>
+        <br>
+            <td align="middle">
+            <img src="part2/ks=1000.png" width="480px" />
+            <figcaption align="middle">ks = 1000.</figcaption>
+        </br>
+        <br>
+            <td align="middle">
+            <img src="part2/ks=5000.png" width="480px" />
+            <figcaption align="middle">ks = 5000(default).</figcaption>
+        </br>
+    </tr>
+    <tr>
+        <br>
+            <td align="middle">
+            <img src="part2/ks=10000.png" width="480px" />
+            <figcaption align="middle">ks = 10000.</figcaption>
+        </br>
+        <br>
+            <td align="middle">
+            <img src="part2/ks=100000.png" width="480px" />
+            <figcaption align="middle">ks = 100000.</figcaption>
+        </br>
+    </tr>
+ </table>
+</div>
+
+<p>What about for density?</p>
+
+<p>By increasing density, the wrinkle part of the cloth is pulled down more by gravity. This is because the point masses positions are affected by the forces acted on them(in this case, gravity). Gravity is affected by the density of the cloth.</p>
+
+<div align="center">
+  <table style="width=100%">
+    <tr>
+        <br>
+            <td align="middle">
+            <img src="part2/d=1.png" width="480px" />
+            <figcaption align="middle">density = 1.</figcaption>
+        </br>
+        <br>
+            <td align="middle">
+            <img src="part2/d=5.png" width="480px" />
+            <figcaption align="middle">density = 5.</figcaption>
+        </br>
+    </tr>
+    <tr>
+        <br>
+            <td align="middle">
+            <img src="part2/d=10.png" width="480px" />
+            <figcaption align="middle">density = 10.</figcaption>
+        </br>
+        <br>
+            <td align="middle">
+            <img src="part2/d=15.png" width="480px" />
+            <figcaption align="middle">density = 15(default).</figcaption>
+        </br>
+    </tr>
+    <tr>
+        <br>
+            <td align="middle">
+            <img src="part2/d=20.png" width="480px" />
+            <figcaption align="middle">density = 20.</figcaption>
+        </br>
+        <br>
+            <td align="middle">
+            <img src="part2/d=30.png" width="480px" />
+            <figcaption align="middle">density = 30.</figcaption>
+        </br>
+    </tr>
+    <tr>
+        <br>
+            <td align="middle">
+            <img src="part2/d=50.png" width="480px" />
+            <figcaption align="middle">density = 50.</figcaption>
+        </br>
+        <br>
+            <td align="middle">
+            <img src="part2/d=100.png" width="480px" />
+            <figcaption align="middle">density = 100.</figcaption>
+        </br>
+    </tr>
+  </table>
+</div>
+
+<p>What about for damping?</p>
+
+<p>Daming constant controls the oscillation of the spring. THe higher the damping constant is, the less likely the cloth continues to travel; the lower the damping constant is, the longer the cloth stay oscillated and moving. This is because energy runs out faster with higher damping constant.
+
+<div align="center">
+  <table style="width=100%">
+    <tr>
+        <br>
+            <td align="middle">
+            <img src="part2/damp01.png" width="480px" />
+            <figcaption align="middle">damp = 0, first bounce.</figcaption>
+        </br>
+        <br>
+            <td align="middle">
+            <img src="part2/damp02.png" width="480px" />
+            <figcaption align="middle">damp = 0, second bounce.</figcaption>
+        </br>
+    </tr>
+    <tr>
+        <br>
+            <td align="middle">
+            <img src="part2/damp03.png" width="480px" />
+            <figcaption align="middle">damp = 0, third bounce.</figcaption>
+        </br>
+        <br>
+            <td align="middle">
+            <img src="part2/damp=0.1.png" width="480px" />
+            <figcaption align="middle">damp = 0.1</figcaption>
+        </br>
+    </tr>
+    <tr>
+        <br>
+            <td align="middle">
+            <img src="part2/damp=0.2.png" width="480px" />
+            <figcaption align="middle">damp = 0.2.</figcaption>
+        </br>
+        <br>
+            <td align="middle">
+            <img src="part2/damp=0.3.png" width="480px" />
+            <figcaption align="middle">damp = 0.3</figcaption>
+        </br>
+    </tr>
+    <tr>
+        <br>
+            <td align="middle">
+            <img src="part2/damp=0.4.png" width="480px" />
+            <figcaption align="middle">damp = 0.4.</figcaption>
+        </br>
+        <br>
+            <td align="middle">
+            <img src="part2/damp=0.5.png" width="480px" />
+            <figcaption align="middle">damp = 0.5</figcaption>
+        </br>
+    </tr>
+    <tr>
+        <br>
+            <td align="middle">
+            <img src="part2/damp=0.6.png" width="480px" />
+            <figcaption align="middle">damp = 0.6.</figcaption>
+        </br>
+        <br>
+            <td align="middle">
+            <img src="part2/damp=0.7.png" width="480px" />
+            <figcaption align="middle">damp = 0.7</figcaption>
+        </br>
+    </tr>
+    <tr>
+        <br>
+            <td align="middle">
+            <img src="part2/damp=0.8.png" width="480px" />
+            <figcaption align="middle">damp = 0.8.</figcaption>
+        </br>
+        <br>
+            <td align="middle">
+            <img src="part2/damp=0.9.png" width="480px" />
+            <figcaption align="middle">damp = 0.9</figcaption>
+        </br>
+    </tr>
+    <tr>
+        <br>
+            <td align="middle">
+            <img src="part2/damp=1.0.png" width="480px" />
+            <figcaption align="middle">damp = 1.0.</figcaption>
+        </br>
+    </tr>
+ </table>
+</div>
+
+<h2 align="middle">Part 3: Handling collisions with other objects</h2>
+
+<p>Show us screenshots of your shaded cloth from scene/sphere.json in its final resting state on the sphere using the default ks = 5000 as well as with ks = 500 and ks = 50000. Describe the differences in the results.</p>
+
+<p>Show us a screenshot of your shaded cloth lying peacefully at rest on the plane. If you haven't by now, feel free to express your colorful creativity with the cloth!</p>
+
+<div align="center">
+  <table style="width=100%">
+    <tr>
+        <br>
+            <td align="middle">
+            <img src="part3/ks=500.png" width="480px" />
+            <figcaption align="middle">ks = 500.</figcaption>
+        </br>
+        <br>
+            <td align="middle">
+            <img src="part3/ks=5000.png" width="480px" />
+            <figcaption align="middle">ks = 5000.</figcaption>
+        </br>
+    </tr>
+    <tr>
+        <br>
+            <td align="middle">
+            <img src="part3/ks=5000.png" width="480px" />
+            <figcaption align="middle">ks = 5000.</figcaption>
+        </br>
+        <br>
+            <td align="middle">
+            <img src="part3/plane.png" width="480px" />
+            <figcaption align="middle">Cloth lying at rest on plane.</figcaption>
+        </br>
+    </tr>
+  </table>
+</div>
+
+
+<h2 align="middle">Part 4: Handling self-collisions</h2>
+
+<p>Show us at least 3 screenshots that document how your cloth falls and folds on itself, starting with an early, initial self-collision and ending with the cloth at a more restful state (even if it is still slightly bouncy on the ground).</p>
+
+<div align="center">
+  <table style="width=100%">
+    <tr>
+        <br>
+            <td align="middle">
+            <img src="part4/initial.png" width="480px" />
+            <figcaption align="middle">At the start.</figcaption>
+        </br>
+        <br>
+            <td align="middle">
+            <img src="part4/middle1.png" width="480px" />
+            <figcaption align="middle">In the middle.</figcaption>
+        </br>
+    </tr>
+    <tr>
+        <br>
+            <td align="middle">
+            <img src="part4/middle2.png" width="480px" />
+            <figcaption align="middle">In the middle.</figcaption>
+        </br>
+        <br>
+            <td align="middle">
+            <img src="part4/end.png" width="480px" />
+            <figcaption align="middle">In the end.</figcaption>
+        </br>
+    </tr>
+  </table>
+</div>
+
+<p>Vary the density as well as ks and describe with words and screenshots how they affect the behavior of the cloth as it falls on itself.</p>
+
+<p>By comparing the different densities of point masses with the same default setting for all other constants, there is a significant difference in the way the cloth falls. When the density is small, the cloth falls on the plane in a more spread out behavior. While with higher density, the cloth folds more into itself when it starts landing on the plane. This is because the one with higher density, the gravity plays a more significant force on the cloth than other external forces. Thus, the cloth with higher density tends to not move to the side (or say spread out) because gravity is pulling the cloth straight downward.</p>
+
+<div align="center">
+  <table style="width=100%">
+    <tr>
+        <br>
+            <td align="middle">
+            <img src="part4/1_30.png" width="480px" />
+            <figcaption align="middle">Density = 1, after 30s.</figcaption>
+        </br>
+        <br>
+            <td align="middle">
+            <img src="part4/1_60.png" width="480px" />
+            <figcaption align="middle">Density = 1, after 60s.</figcaption>
+        </br>
+    </tr>
+    <tr>
+        <br>
+            <td align="middle">
+            <img src="part4/1_90.png" width="480px" />
+            <figcaption align="middle">Density = 1, after 90s.</figcaption>
+        </br>
+        <br>
+            <td align="middle">
+            <img src="part4/1_120.png" width="480px" />
+            <figcaption align="middle">Density = 1, after 120s.</figcaption>
+        </br>
+    </tr>
+    <tr>
+        <br>
+            <td align="middle">
+            <img src="part4/5_30.png" width="480px" />
+            <figcaption align="middle">Density = 5, after 30s.</figcaption>
+        </br>
+        <br>
+            <td align="middle">
+            <img src="part4/5_60.png" width="480px" />
+            <figcaption align="middle">Density = 5, after 60s.</figcaption>
+        </br>
+    </tr>
+    <tr>
+        <br>
+            <td align="middle">
+            <img src="part4/5_90.png" width="480px" />
+            <figcaption align="middle">Density = 5, after 90s.</figcaption>
+        </br>
+        <br>
+            <td align="middle">
+            <img src="part4/5_120.png" width="480px" />
+            <figcaption align="middle">Density = 5, after 120s.</figcaption>
+        </br>
+    </tr>
+    <tr>
+        <br>
+            <td align="middle">
+            <img src="part4/15_30.png" width="480px" />
+            <figcaption align="middle">Density = 15, after 30s.</figcaption>
+        </br>
+        <br>
+            <td align="middle">
+            <img src="part4/15_60.png" width="480px" />
+            <figcaption align="middle">Density = 15, after 60s.</figcaption>
+        </br>
+    </tr>
+    <tr>
+        <br>
+            <td align="middle">
+            <img src="part4/15_90.png" width="480px" />
+            <figcaption align="middle">Density = 15, after 90s.</figcaption>
+        </br>
+        <br>
+            <td align="middle">
+            <img src="part4/15_120.png" width="480px" />
+            <figcaption align="middle">Density = 15, after 120s.</figcaption>
+        </br>
+    </tr>
+    <tr>
+        <br>
+            <td align="middle">
+            <img src="part4/50_30.png" width="480px" />
+            <figcaption align="middle">Density = 50, after 30s.</figcaption>
+        </br>
+        <br>
+            <td align="middle">
+            <img src="part4/50_60.png" width="480px" />
+            <figcaption align="middle">Density = 50, after 60s.</figcaption>
+        </br>
+    </tr>
+    <tr>
+        <br>
+            <td align="middle">
+            <img src="part4/50_90.png" width="480px" />
+            <figcaption align="middle">Density = 50, after 90s.</figcaption>
+        </br>
+        <br>
+            <td align="middle">
+            <img src="part4/50_120.png" width="480px" />
+            <figcaption align="middle">Density = 50, after 120s.</figcaption>
+        </br>
+    </tr>
+    <tr>
+        <br>
+            <td align="middle">
+            <img src="part4/100_30.png" width="480px" />
+            <figcaption align="middle">Density = 100, after 30s.</figcaption>
+        </br>
+        <br>
+            <td align="middle">
+            <img src="part4/100_60.png" width="480px" />
+            <figcaption align="middle">Density = 100, after 60s.</figcaption>
+        </br>
+    </tr>
+    <tr>
+        <br>
+            <td align="middle">
+            <img src="part4/100_90.png" width="480px" />
+            <figcaption align="middle">Density = 100, after 90s.</figcaption>
+        </br>
+        <br>
+            <td align="middle">
+            <img src="part4/100_120.png" width="480px" />
+            <figcaption align="middle">Density = 100, after 120s.</figcaption>
+        </br>
+    </tr>
+  </table>
+</div>
+
+
+
+<p>The constant ks controls the stretchiness of the cloth. With smaller ks, the cloth is stretched more so it looks more wrinkle when it starts to land on the plane than the one with higher ks. This also can be seen by looking at the final restful state of the cloth. The one with higher ks lying on the plane more flat than the one with smaller ks.</p>
+
+<div align="center">
+  <table style="width=100%">    
+    <tr>
+        <br>
+            <td align="middle">
+            <img src="part4/ks_100_30.png" width="480px" />
+            <figcaption align="middle">ks = 100, after 30s.</figcaption>
+        </br>
+        <br>
+            <td align="middle">
+            <img src="part4/ks_100_60.png" width="480px" />
+            <figcaption align="middle">ks = 100, after 60s.</figcaption>
+        </br>
+    </tr>
+    <tr>
+        <br>
+            <td align="middle">
+            <img src="part4/ks_100_90.png" width="480px" />
+            <figcaption align="middle">ks = 100, after 90s.</figcaption>
+        </br>
+        <br>
+            <td align="middle">
+            <img src="part4/ks_100_120.png" width="480px" />
+            <figcaption align="middle">ks = 100, after 120s.</figcaption>
+        </br>
+    </tr>
+    <tr>
+        <br>
+            <td align="middle">
+            <img src="part4/ks_1000_30.png" width="480px" />
+            <figcaption align="middle">ks = 1000, after 30s.</figcaption>
+        </br>
+        <br>
+            <td align="middle">
+            <img src="part4/ks_1000_60.png" width="480px" />
+            <figcaption align="middle">ks = 1000, after 60s.</figcaption>
+        </br>
+    </tr>
+    <tr>
+        <br>
+            <td align="middle">
+            <img src="part4/ks_1000_90.png" width="480px" />
+            <figcaption align="middle">ks = 1000, after 90s.</figcaption>
+        </br>
+        <br>
+            <td align="middle">
+            <img src="part4/ks_1000_120.png" width="480px" />
+            <figcaption align="middle">ks = 1000, after 120s.</figcaption>
+        </br>
+    </tr>
+    <tr>
+        <br>
+            <td align="middle">
+            <img src="part4/ks_5000_30.png" width="480px" />
+            <figcaption align="middle">ks = 5000, after 30s.</figcaption>
+        </br>
+        <br>
+            <td align="middle">
+            <img src="part4/ks_5000_60.png" width="480px" />
+            <figcaption align="middle">ks = 5000, after 60s.</figcaption>
+        </br>
+    </tr>
+    <tr>
+        <br>
+            <td align="middle">
+            <img src="part4/ks_5000_90.png" width="480px" />
+            <figcaption align="middle">ks = 5000, after 90s.</figcaption>
+        </br>
+        <br>
+            <td align="middle">
+            <img src="part4/ks_5000_120.png" width="480px" />
+            <figcaption align="middle">ks = 5000, after 120s.</figcaption>
+        </br>
+    </tr>
+    <tr>
+        <br>
+            <td align="middle">
+            <img src="part4/ks_50000_30.png" width="480px" />
+            <figcaption align="middle">ks = 50000, after 30s.</figcaption>
+        </br>
+        <br>
+            <td align="middle">
+            <img src="part4/ks_50000_60.png" width="480px" />
+            <figcaption align="middle">ks = 50000, after 60s.</figcaption>
+        </br>
+    </tr>
+    <tr>
+        <br>
+            <td align="middle">
+            <img src="part4/ks_50000_90.png" width="480px" />
+            <figcaption align="middle">ks = 50000, after 90s.</figcaption>
+        </br>
+        <br>
+            <td align="middle">
+            <img src="part4/ks_50000_120.png" width="480px" />
+            <figcaption align="middle">ks = 50000, after 120s.</figcaption>
+        </br>
+    </tr>
+  </table>
+</div>
+
+</body>
+</html>

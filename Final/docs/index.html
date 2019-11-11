@@ -1,0 +1,415 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+    <style>
+        div.padded {
+            padding-top: 0px;
+            padding-right: 100px;
+            padding-bottom: 0.25in;
+            padding-left: 100px;
+        }
+        body {
+            font-size: 140%;
+            font-family: "Times New Roman", Times, serif;
+        }
+    </style>
+    <title>Renjie Shao  |  CS 184</title>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <link rel="stylesheet" type="text/css" href="style.css" media="screen" />
+    <script type="text/javascript"
+            src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.2/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+    </script>
+    <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    extensions: ["tex2jax.js"],
+    jax: ["input/TeX", "output/HTML-CSS"],
+    tex2jax: {
+      inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+      displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
+      processEscapes: true
+    },
+    "HTML-CSS": { availableFonts: ["TeX"] }
+  });
+</script>
+    <script type="text/javascript" src="path-to-MathJax/MathJax.js">
+    </script>
+</head>
+<body>
+<br />
+<h1 align="middle">Assignment 3: PathTracer</h1>
+<h2 align="middle">Renjie Shao</h2>
+
+<div class="padded">
+    <h2 align="middle">Overview:</h2>
+    In this project, I first implement BSDF for mirror and glass
+    materials with the knowledge of reflection and refraction.
+    Second I implement BRDF with microfacet theory to simulate
+    more realistic surface. Also implement importance sampling microfacet
+    BRDF. In part 3, I implement importance sampling for environment light
+    based on the total flux passing through the solid angle. Then I simulate
+    a thin lens to enable the depth of field effect. Last, I write some
+    shader programs to render efficiently.
+
+    <h2 align="middle">Part 1: Mirror and Glass Materials</h2>
+    <ul>
+        <li>
+            <strong>Different ray depth:</strong>
+        </li>
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                    <td>
+                        <img src="images/part1_m0.png" align="middle" width="400px">
+                        <figcaption align="middle">depth = 0</figcaption>
+                    </td>
+                    <td>
+                        <img src="images/part1_m1.png" align="middle" width="400px">
+                        <figcaption align="middle">depth = 1</figcaption>
+                    </td>
+                </tr><br/>
+                <tr>
+                    <td>
+                        <img src="images/part1_m2.png" align="middle" width="400px">
+                        <figcaption align="middle">depth = 2</figcaption>
+                    </td>
+                    <td>
+                        <img src="images/part1_m3.png" align="middle" width="400px">
+                        <figcaption align="middle">depth = 3</figcaption>
+                    </td>
+                </tr><br/>
+                <tr>
+                    <td>
+                        <img src="images/part1_m4.png" align="middle" width="400px">
+                        <figcaption align="middle">depth = 4</figcaption>
+                    </td>
+                    <td>
+                        <img src="images/part1_m5.png" align="middle" width="400px">
+                        <figcaption align="middle">depth = 5</figcaption>
+                    </td>
+                </tr><br/>
+                <tr>
+                    <td>
+                        <img src="images/part1_m100.png" align="middle" width="400px">
+                        <figcaption align="middle">depth = 100</figcaption>
+                    </td>
+                </tr>
+            </table>
+        </div><br/>
+        <li>
+            As is shown in images above, rays of 0 depth are the rays emitted form light. Rays of
+            1 depth are the light reflected by non-delta material since we let spectrum be zero
+            when dealing with delta bsdf. When the depth is larger than 1, the images become
+            more and more realistic and less noisy.
+        </li><br/>
+    </ul>
+
+    <h2 align="middle">Part 2: Microfacet Material</h2>
+    <ul>
+        <li>
+            <strong>Rendering with different alpha: </strong><br/>
+            <div align="center">
+                <table style="width=100%">
+                    <tr>
+                        <td>
+                            <img src="images/part2_0005.png" align="middle" width="400px">
+                            <figcaption align="middle">alpha = 0.005</figcaption>
+                        </td>
+                        <td>
+                            <img src="images/part2_005.png" align="middle" width="400px">
+                            <figcaption align="middle">alpha = 0.05</figcaption>
+                        </td>
+                    </tr><br/>
+                    <tr>
+                        <td>
+                            <img src="images/part2_025.png" align="middle" width="400px">
+                            <figcaption align="middle">alpha = 0.25</figcaption>
+                        </td>
+                        <td>
+                            <img src="images/part2_05.png" align="middle" width="400px">
+                            <figcaption align="middle">alpha = 0.5</figcaption>
+                        </td>
+                    </tr><br/>
+                </table>
+            </div>
+        </li>
+        <li>
+            The larger alpha is, the rough the surface is. When alpha is small, the material
+            look like metal while the material become diffuse when alpha is large.
+        </li><br/>
+        <li>
+            <strong>Uniform and importance sampling: </strong><br/>
+            <div align="center">
+                <table style="width=100%">
+                    <tr>
+                        <td>
+                            <img src="images/part2_hemis.png" align="middle" width="400px">
+                            <figcaption align="middle">cosine hemisphere </figcaption>
+                        </td>
+                        <td>
+                            <img src="images/part2_imp.png" align="middle" width="400px">
+                            <figcaption align="middle">importance sampling</figcaption>
+                        </td>
+                    </tr><br/>
+                </table>
+            </div>
+        </li>
+        <li>
+            Image rendered with importance sampling is much less noisy. The surface looks more
+            smooth.
+        </li><br/>
+        <li>
+            <strong>Some other material: </strong><br/>
+            <div align="center">
+                <table style="width=100%">
+                    <tr>
+                            <img src="images/part2_iron.png" align="middle" width="400px">
+                            <figcaption align="middle">cosine hemisphere </figcaption>
+                    </tr><br/>
+                </table>
+            </div>
+        </li>
+        <li>
+            This material is iron. eta = (2.8851,2.9500, 2.6500), k = (3.0449,2.9300, 2.8075)
+        </li>
+    </ul>
+
+    <h2 align="middle">Part 3: Environment Map Lights</h2>
+    <ul>
+        <li>
+            <strong>Probability distribution: </strong><br/>
+            <div align="center">
+                <table style="width=100%">
+                    <tr>
+                        <td>
+                            <img src="images/probability_debug.png" align="middle" width="400px">
+                            <figcaption align="middle">probability distribution for doge.exr</figcaption>
+                        </td>
+                        <td>
+                            <img src="images/doge.jpg" align="middle" width="400px">
+                            <figcaption align="middle">doge.jpg</figcaption>
+                        </td>
+                    </tr><br/>
+                </table>
+            </div>
+        </li>
+        <li>
+            <strong>Importance sample and uniform sample :</strong><br/>
+            <div align="center">
+                <table style="width=100%">
+                    <tr>
+                        <td>
+                            <img src="images/part3_doge_uni.png" align="middle" width="400px">
+                            <figcaption align="middle">uniform sample</figcaption>
+                        </td>
+                        <td>
+                            <img src="images/part3_doge_imp.png" align="middle" width="400px">
+                            <figcaption align="middle">importance sample</figcaption>
+                        </td>
+                    </tr><br/>
+                    <tr>
+                        <td>
+                            <img src="images/part3_doge_uni_cu.png" align="middle" width="400px">
+                            <figcaption align="middle">uniform sample</figcaption>
+                        </td>
+                        <td>
+                            <img src="images/part3_doge_imp_cu.png" align="middle" width="400px">
+                            <figcaption align="middle">importance sample</figcaption>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+		The images rendered with importance sampling are less noisy than uniform sampling.
+        </li><br/>
+    </ul>
+
+
+
+    <h2 align="middle">Part 4: Depth of Field</h2>
+    <ul>
+        <li>
+            <strong>Different focus distance: </strong><br/>
+            <div align="center">
+                <table style="width=100%">
+                    <tr>
+                        <td>
+                            <img src="images/part4_dragon1.png" align="middle" width="400px">
+                            <figcaption align="middle">focus distance = 1.7</figcaption>
+                        </td>
+                        <td>
+                            <img src="images/part4_dragon2.png" align="middle" width="400px">
+                            <figcaption align="middle">focus distance = 2.0</figcaption>
+                        </td>
+                    </tr><br/>
+                    <tr>
+                        <td>
+                            <img src="images/part4_dragon3.png" align="middle" width="400px">
+                            <figcaption align="middle">focus distance = 2.3</figcaption>
+                        </td>
+                        <td>
+                            <img src="images/part4_dragon4.png" align="middle" width="400px">
+                            <figcaption align="middle">focus distance = 2.6</figcaption>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+        </li>
+        <li>
+            <strong>Different aperture sizes: </strong><br/>
+            <div align="center">
+                <table style="width=100%">
+                    <tr>
+                        <td>
+                            <img src="images/part4_bunny6.png" align="middle" width="400px">
+                            <figcaption align="middle">lensRadius = 0.0284</figcaption>
+                        </td>
+                        <td>
+                            <img src="images/part4_bunny8.png" align="middle" width="400px">
+                            <figcaption align="middle">lensRadius = 0.0584</figcaption>
+                        </td>
+                    </tr><br/>
+                    <tr>
+                        <td>
+                            <img src="images/part4_bunny5.png" align="middle" width="400px">
+                            <figcaption align="middle">lensRadius = 0.0884</figcaption>
+                        </td>
+                        <td>
+                            <img src="images/part4_bunny7.png" align="middle" width="400px">
+                            <figcaption align="middle">lensRadius = 0.1184</figcaption>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+        </li>
+    </ul>
+    <h2 align="middle">Part 5: Shader program</h2>
+    link: <a href="gl/index.html">gl/index.html</a>
+    <ul>
+        <li>
+            <strong>Shader program:</strong><br/>
+            Shader program is a type of program used for shading or some other rendering
+            effects. Shader program describes operations on single vertex or fragment so that it can run
+            on GPU efficiently. Each fragment runs the same rendering pipeline to generate certain texture.
+        </li><br/>
+        <li>
+            <strong>Blinn-Phong:</strong><br/>
+            Blinn-Phong consists of three component: ambient component, diffuse
+            component and specular component. Ambient component does not depend
+            on light. Diffuse component is relevant to distance to light and angle
+            between light and normal. The specular component is :
+            $$L_s = k_s(I/r^2)max(0, n· h)^p$$
+            The closer the view direction is to mirror direction, the larger $n·h$ is. So in
+            Blinn-Phong, color is brighter where view direction closer to mirror direction.
+            The lager $p$ is, the smaller highlight is.
+            <div align="center">
+                <table style="width=100%">
+                    <tr>
+                        <td>
+                            <img src="images/part5amb.png" align="middle" width="400px">
+                            <figcaption align="middle">ambient component</figcaption>
+                        </td>
+                        <td>
+                            <img src="images/part5d.png" align="middle" width="400px">
+                            <figcaption align="middle">diffuse component</figcaption>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <img src="images/part5s.png" align="middle" width="400px">
+                            <figcaption align="middle">specular component</figcaption>
+                        </td>
+                        <td>
+                            <img src="images/part5e.png" align="middle" width="400px">
+                            <figcaption align="middle">entire Blinn-Phong</figcaption>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </li>
+        </li><br/>
+        <li>
+            <strong>My own texture:</strong><br/>
+            <div align="center">
+                <table style="width=100%">
+                    <tr>
+                        <td>
+                            <img src="images/part5c.png" align="middle" width="400px">
+                            <figcaption align="middle">my texture</figcaption>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </li>
+        </li><br/>
+        <li>
+            <strong>Bump mapping and displacement mapping:</strong><br/>
+            <div align="center">
+                <table style="width=100%">
+                    <tr>
+                        <td>
+                            <img src="images/part5n.png" align="middle" width="400px">
+                            <figcaption align="middle">bump mapping</figcaption>
+                        </td>
+                        <td>
+                            <img src="images/part5v.png" align="middle" width="400px">
+                            <figcaption align="middle">displacement mapping</figcaption>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            The textures look similar. But if you turn the object around, bump mapping
+            if always a sphere while displacement mapping can observe the bumps of surface.
+        </li><br/>
+        <li>
+            <strong>Different number of components </strong>
+            <div align="center">
+                <table style="width=100%">
+                    <tr>
+                        <td>
+                            <img src="images/part5128b.png" align="middle" width="400px">
+                            <figcaption align="middle">$128\times 128$</figcaption>
+                        </td>
+                        <td>
+                            <img src="images/part5128d.png" align="middle" width="400px">
+                            <figcaption align="middle">$128\times 128$</figcaption>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <img src="images/part51024b.png" align="middle" width="400px">
+                            <figcaption align="middle">$1024\times 1024$</figcaption>
+                        </td>
+                        <td>
+                            <img src="images/part51024d.png" align="middle" width="400px">
+                            <figcaption align="middle">$1024\times 1024$</figcaption>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            We can observe that the more components, the more details can be shown on the surface.
+            In the $128\times 128$ image, we can only see the rough texture. Most part of surface
+            is smooth. But in $1024\times 1024$ images, we can observe even little bumps on the
+            surface.
+        </li>
+        <li>
+            <strong>My shader:</strong>
+            <div align="center">
+                <table style="width=100%">
+                    <tr>
+                        <td>
+                            <img src="images/part5m.png" align="middle" width="400px">
+                            <figcaption align="middle">A global</figcaption>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </li>
+        I render a global in my shader. I download a world map as texture map. I use
+        the color of texture as ambient component. Then I set light as previous tasks.
+        Also, I sample from texture using <code>vec2(mod(fUv.u+1-time/10000., 1.0), fUv.y)</code>
+        instead of <code>fUv</code> to simulate earth's rotation from west to east.
+    </ul>
+</div>
+</body>
+</html>

@@ -1,0 +1,5 @@
+/home/cs184/CS184_Final/build/CGL/src/CMakeFiles/CGL.dir
+/home/cs184/CS184_Final/build/CGL/deps/glew/CMakeFiles/glew.dir
+/home/cs184/CS184_Final/build/CGL/deps/glfw/src/CMakeFiles/glfw.dir
+/home/cs184/CS184_Final/build/src/CMakeFiles/pathtracer.dir
+/home/cs184/CS184_Final/build/CGL/deps/glfw/CMakeFiles/uninstall.dir

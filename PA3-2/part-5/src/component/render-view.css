@@ -1,0 +1,16 @@
+.render-view {
+  position: relative;
+  border-radius: 10px;
+}
+
+.render-view-container {
+  position: relative;
+  display: inline-block;
+}
+
+#stats {
+  z-index: 1;
+  position: absolute;
+  left: 0;
+  top: 0;
+}

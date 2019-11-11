@@ -1,0 +1,417 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<style>  
+    div.padded {  
+      padding-top: 0px;  
+      padding-right: 100px;  
+      padding-bottom: 0.25in;  
+      padding-left: 100px;  
+    }  
+  </style> 
+<title>JIYUAN LU|  CS 184</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="style.css" media="screen" />
+</head>
+<body>
+<br />
+<h1 align="middle">Assignment 3: PathTracer</h1>
+    <h2 align="middle">JIYUAN LU</h2>
+
+    <div class="padded">
+        <p> Summary: Expand on project 3-1, we added more complicated materials, environment lights, and depth of field to the ray tracer. In addition, we implemented shaders that are isolated programs that run in parallel on GPU to give us faster rendering.</p>
+
+	<h2 align="middle">Part 1: Mirror and Glass Materials</h2>
+		<p>describe what you did in part 1.</p>
+		<p>Answer: In part 1, reflection and refraction are implemented and can be visualized via two spheres in the box. Increasing the maximum ray depth increases the maximum number of times a ray can be reflected and refracted. They are a little bit noisy because of the low sample rate.</p>
+
+        <p>Show a sequence of six images of scene CBspheres.dae rendered with max_ray_depth set to 0, 1, 2, 3, 4, 5, and 100. The other settings should be at least 64 samples per pixel and 4 samples per light. Point out the new multibounce effects that appear in each image.</p>
+       
+       <p>Answer:</p>
+
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                	<br>
+	                    <td align="middle">
+	                    <img src="part1/CBspheres_m0.png" width="480px" />
+	                    <figcaption align="middle">max ray depth = 0. No ray can be reflected or refracted, so we can only see the light source.</figcaption>
+                	</br>
+                	<br>
+	                    <td align="middle">
+	                    <img src="part1/CBspheres_m1.png" width="480px" />
+	                    <figcaption align="middle">max ray depth = 1. Ray get reflected once on the mirror and glass sphere. The room is lit up by diffuse reflection, but the delta spheres only reflect the direct light from the light source. </figcaption>
+                	</br>
+                </tr>
+                <tr>
+                	<br>
+	                    <td align="middle">
+	                    <img src="part1/CBspheres_m2.png" width="480px" />
+	                    <figcaption align="middle">max ray depth = 2. The glass sphere on the right looks darker. The small sphere reflected on the mirror sphere looks dark.</figcaption>
+                	</br>
+                	<br>
+	                    <td align="middle">
+	                    <img src="part1/CBspheres_m3.png" width="480px" />
+	                    <figcaption align="middle">max ray depth = 3. The small sphere reflected on the mirror sphere still looks dark.</figcaption>
+                	</br>
+                </tr>
+                <tr>
+                	<br>
+	                    <td align="middle">
+	                    <img src="part1/CBspheres_m4.png" width="480px" />
+	                    <figcaption align="middle">max ray depth = 4. The image is similar to depth = 100.</figcaption>
+                	</br>
+                	<br>
+	                    <td align="middle">
+	                    <img src="part1/CBspheres_m5.png" width="480px" />
+	                    <figcaption align="middle">max ray depth = 5. The image is similar to depth = 100.</figcaption>
+                	</br>
+                </tr>
+                <tr>
+                	<br>
+	                    <td align="middle">
+	                    <img src="part1/CBspheres_m100.png" width="480px" />
+	                    <figcaption align="middle">max ray depth = 100. Increasing max ray depth gives brighter image.</figcaption>
+                	</br>
+                </tr>
+            </table>
+        </div>
+
+    
+    <h2 align="middle">Part 2: Microfacet Material</h2>
+    	<p>describe what you did in part 2.</p>
+		<p>Answer: In part 2, we implemented the BRDF for the microfacet material. Then we implemented importance sampling and compared it to the default cosine uniform sampling.</p>
+
+		<p>Show a sequence of 4 images of scene CBdragon_microfacet_au.dae rendered with α set to 0.005, 0.05, 0.25 and 0.5. The other settings should be at least 128 samples per pixel and 1 samples per light. The number of bounces should be at least 5. Describe the differences between different images. Note that, to change the α, just open the .dae file and search for microfacet.</p>
+
+		<p>Answer: Changing alpha value changes the roughness of the mesh material. It describes how the microfacet surface reflects lights in the randomness of the reflection direction. As seen below, the lower the alpha value, the smoother the surface is. It looks more like a mirror. While a rough surface will scatter the reflection in multiple directions. </p>
+
+		<div align="center">
+            <table style="width=100%">
+                <tr>
+                	<br>
+	                    <td align="middle">
+	                    <img src="part2/CBdragon_microfacet_au_alpha0005.png" width="480px" />
+	                    <figcaption align="middle">alpha = 0.005.</figcaption>
+                	</br>
+                	<br>
+	                    <td align="middle">
+	                    <img src="part2/CBdragon_microfacet_au_alpha005.png" width="480px" />
+	                    <figcaption align="middle">alpha = 0.05.</figcaption>
+                	</br>
+                </tr>
+                <tr>
+                	<br>
+	                    <td align="middle">
+	                    <img src="part2/CBdragon_microfacet_au_alpha025.png" width="480px" />
+	                    <figcaption align="middle">alpha = 0.25.</figcaption>
+                	</br>
+                	<br>
+	                    <td align="middle">
+	                    <img src="part2/CBdragon_microfacet_au_alpha05.png" width="480px" />
+	                    <figcaption align="middle">alpha = 0.5.</figcaption>
+                	</br>
+                </tr>
+                </table>
+        </div>
+
+        <p>Show two images of scene CBbunny_microfacet_cu.dae rendered using cosine hemisphere sampling (default) and your importance sampling. The sampling rate should be fixed at 64 samples per pixel and 1 samples per light. The number of bounces should be at least 5. Briefly discuss their difference.</p>
+
+        <p>Answer: Using cosine hemisphere sampling gives a noisier effect compared to importance sampling. Because importance sampling distributes samples where light is expected to have a greater influence. Like a perfect mirror only needs a single direction according to the reflection rule. For cosine hemisphere sampling, it results in some samples at flat angles that is not supposed to have a lower influence. So the samples is a bit more spread out in cosine sampling.</p>
+
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                	<br>
+	                    <td align="middle">
+	                    <img src="part2/CBbunny_microfacet_cu_hemisphere.png" width="480px" />
+	                    <figcaption align="middle">cosine hemisphere sampling.</figcaption>
+                	</br>
+                	<br>
+	                    <td align="middle">
+	                    <img src="part2/CBbunny_microfacet_cu_importance.png" width="480px" />
+	                    <figcaption align="middle">importance sampling.</figcaption>
+                	</br>
+                </tr>
+            </table>
+        </div>
+
+        <p>Show at least one image with some other conductor material, replacing eta and k. Note that you should look up values for real data rather than modifying them arbitrarily. Tell us what kind of material your parameters correspond to.</p>
+
+        <p>Answer: This material is silver. With wavelengths of 614nm red, 549 nm green, 466nm blue. Eta are 0.059193, 0.059881, 0.047366 respectively. k are 4.1283, 3.5892, 2.8132 respectively.</p>s
+
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+	                <td align="middle">
+	                <img src="part2/CBbunny_microfacet_cu_silver.png" width="480px" />
+	                <figcaption align="middle">silver bunny.</figcaption>
+                </tr>
+            </table>
+        </div>
+
+    <h2 align="middle">Part 3: Environment Light</h2>
+    	<p>describe what you did in part 3.</p>
+		<p>Answer: In part 3, we implemented environment light so that if the camera ray doesn't intersect with anything, it will eventually hit the background environment light. We then implemented two sampling methods for environment light: uniform sampling and importance sampling. Uniform sampling is the naive way to distribute samples equally and probe all directions equally for incoming light. Every regions has the same weight. To solve this problem, importance sampling is introduced to increase the density of sample points in the regions that we are interested in, for example we want to concentrate more light source in the direction toward the bight light sources. The general idea is that each pixel is assigned a probability (non-uniform distribution) in the environment map based on the total flux passing through the solid angle it represents. It also improves the overall efficiency. </p>
+
+		<p>Pick one .exr file to use for all subparts here. Include a converted .jpg of it in your website so we know what map you are using.</p>
+
+		<p>Answer: The .exr file I used is field.exr. filed.jpg is shown below.</p>
+		<div align="center">
+            <table style="width=100%">
+                <tr>
+	                <td align="middle">
+	                <img src="part3/field.jpg" width="480px" />
+	                <figcaption align="middle">field.jpg</figcaption>
+                </tr>
+            </table>
+        </div>
+
+        <p>Show the probability_debug.png file for the .exr file you are using, generated using the save_probability_debug() helper function after initializing your probability distributions.</p>
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+	                <td align="middle">
+	                <img src="part3/probability_debug.png" width="480px" />
+	                <figcaption align="middle">probability_debug.png</figcaption>
+                </tr>
+            </table>
+        </div>
+
+        <p>Use the bunny_unlit.dae scene and your environment map .exr file and render two pictures, one with uniform sampling and one with importance sampling. Use 4 samples per pixel and 64 samples per light in each. Compare noise levels.</p>
+
+        <p>Answer: Not much difference in noise level between uniform sampling and importance sampling.</p>
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                	<br>
+	                    <td align="middle">
+	                    <img src="part3/bunny_unlit_uniform.png" width="480px" />
+	                    <figcaption align="middle">Uniform sampling.</figcaption>
+                	</br>
+                	<br>
+	                    <td align="middle">
+	                    <img src="part3/bunny_unlit_importance.png" width="480px" />
+	                    <figcaption align="middle">Importance sampling.</figcaption>
+                	</br>
+                </tr>
+            </table>
+        </div>
+
+        <p>Use the bunny_microfacet_cu_unlit.dae and your environment map .exr file and render two pictures, one with uniform sampling and one with importance sampling. Use 4 samples per pixel and 64 samples per light in each. Compare noise levels.</p>
+
+        <p>Answer: Uniform sampling are noisier than importance sampling, especially on edges.</p>
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                	<br>
+	                    <td align="middle">
+	                    <img src="part3/bunny_microfacet_cu_unlit_uniform.png" width="480px" />
+	                    <figcaption align="middle">Uniform sampling.</figcaption>
+                	</br>
+                	<br>
+	                    <td align="middle">
+	                    <img src="part3/bunny_microfacet_cu_unlit_importance.png" width="480px" />
+	                    <figcaption align="middle">Importance sampling.</figcaption>
+                	</br>
+                </tr>
+            </table>
+        </div>
+
+    <h2 align="middle">Part 4: Depth of Field</h2>
+    	<p>describe what you did in part 4.</p>
+		<p>Answer: In part 4, we implemented the thin lense model instead of the perfect pinhole camera model we use before. Therefore we can control the depth of field either by adjusting aperture or focal distance. The smaller the diameter of the aperture, the smaller the f/stop, which is the larger the number, the more depth of field it is. From the first image with highest aperture value, a comparatively narrow depth of field. There is little focus on either side of the focus points. When the aperture value is decreasing, more subject are taken into focus on either side of the focus point. When aperture reaches 0, it is just same as pinhole camera, the whole image is focused. </p> 
+
+		<p>Show a "focus stack" where you focus at 4 visibly different depths through a scene.</p>
+
+		 <div align="center">
+            <table style="width=100%">
+                <tr>
+                	<br>
+	                    <td align="middle">
+	                    <img src="part4/dragon_d_4.0.png" width="480px" />
+	                    <figcaption align="middle"> b = 0.6, d = 4.0.</figcaption>
+                	</br>
+                	<br>
+	                    <td align="middle">
+	                    <img src="part4/dragon_d_4.5.png" width="480px" />
+	                    <figcaption align="middle"> b = 0.6, d = 4.5.</figcaption>
+                	</br>
+                </tr>
+                <tr>
+                	<br>
+	                    <td align="middle">
+	                    <img src="part4/dragon_d_5.0.png" width="480px" />
+	                    <figcaption align="middle"> b = 0.6, d = 5.0.</figcaption>
+                	</br>
+                	<br>
+	                    <td align="middle">
+	                    <img src="part4/dragon_d_5.5.png" width="480px" />
+	                    <figcaption align="middle"> b = 0.6, d = 5.5.</figcaption>
+                	</br>
+                </tr>
+            </table>
+        </div>
+
+        <p>Show a sequence of 4 pictures with visibly different aperture sizes, all focused at the same point in a scene.</p>
+
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                	<br>
+	                    <td align="middle">
+	                    <img src="part4/dragon_b_0.05.png" width="480px" />
+	                    <figcaption align="middle"> b = 0.05, d = 5.0.</figcaption>
+                	</br>
+                	<br>
+	                    <td align="middle">
+	                    <img src="part4/dragon_b_0.1.png" width="480px" />
+	                    <figcaption align="middle"> b = 0.1, d = 5.0.</figcaption>
+                	</br>
+                </tr>
+                <tr>
+                	<br>
+	                    <td align="middle">
+	                    <img src="part4/dragon_b_0.2.png" width="480px" />
+	                    <figcaption align="middle"> b = 0.2, d = 5.0.</figcaption>
+                	</br>
+                	<br>
+	                    <td align="middle">
+	                    <img src="part4/dragon_b_0.4.png" width="480px" />
+	                    <figcaption align="middle"> b = 0.4, d = 5.0.</figcaption>
+                	</br>
+                </tr>
+            </table>
+        </div>
+
+    <h2 align="middle">Part 5: Shading</h2>
+    	<p>describe what you did in part 5.</p>
+		<p>Answer: In part 5, I implemented shaders that are isolated programs that run in parallel on GPU to give us faster rendering than on CPU. I implemented several shading schemes on webGL, including diffuse shading, Blinn-Phong Shading, texture mapping, displacement and bump mapping. I also created my own shader.</p>
+
+
+    	<p>Copy the production gl directory to your docs directory. Make sure there is an anchor to gl/index.html somewhere in your writeup.</p>
+
+    	<p>Briefly explain in your own words what is a shader program and how vertex and fragment shaders work together to create lighting and material effects.</p>
+
+        <p>Answer: A shader program is an isolated programs that run in parallel on GPU, executing sections of the graphics pipeline, taking in an input, and outputing a single 4 dimensional vector. Vertex shader generally apply transforms to vertices, modifying their geometric properties like position and normal vectors, writing the final position of the vertex to gl_Position in addition to writing varyings for use in the fragment shader. Fragment shaders: After rasterization, we end up with fragments, which these shaders process. These shaders generally take in geometric attributes of the fragment calculated by the vertex shader to compute and write a color into gl_FragColor. To create a shader program, we compile and link a vertex and fragment shader, the output of the vertex shader becomes the input of the fragment shader. Then we render the final image based on the material and lighting.</p>
+
+
+    	<p>Explain the Blinn-Phong shading model in your own words. Show a screen shot of your Blinn-Phong shader outputting only the ambient component, a screen shot only outputting the diffuse component, a screen shot only outputting the specular component, and one using the entire Blinn-Phong model.</p>
+
+    	<p>Answer: Blinn-Phong model divides light into 3 categories: ambience lighting, diffuse reflection and specular highlight. First we treat the surface as a diffuse material and calculate the reflected light on the diffuse surface. Then we treat the surface as a specular material and add another layer of specular highlight. Finally we add the uniform ambience lighting to the object from every direction.</p>
+    	<div align="center">
+            <table style="width=100%">
+                <tr>
+                	<br>
+	                    <td align="middle">
+	                    <img src="part5/2/BP_a.png" width="480px" />
+	                    <figcaption align="middle"> Ambience.</figcaption>
+                	</br>
+                	<br>
+	                    <td align="middle">
+	                    <img src="part5/2/BP_d.png" width="480px" />
+	                    <figcaption align="middle"> Diffuse.</figcaption>
+                	</br>
+                </tr>
+                <tr>
+                	<br>
+	                    <td align="middle">
+	                    <img src="part5/2/BP_s.png" width="480px" />
+	                    <figcaption align="middle"> Specular.</figcaption>
+                	</br>
+                	<br>
+	                    <td align="middle">
+	                    <img src="part5/2/BP_f.png" width="480px" />
+	                    <figcaption align="middle"> Entire Blinn-Phong model.</figcaption>
+                	</br>
+                </tr>
+            </table>
+        </div>
+
+    	<p>Show a screenshot of your texture mapping shader using your own custom texture by modifying src/renderers/t3-renderer.</p>
+
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                    <td align="middle">
+                    <img src="part5/3/texture.png" width="480px" />
+                    <figcaption align="middle">Texture mapping using custom texture.</figcaption>
+                </tr>
+            </table>
+        </div>
+    	
+
+    	<p>Show a screenshot of bump mapping and displacement mapping using the same texture for both renders. You can either provide your own texture or use one of the ones in the textures directory, BUT choose one that's not the default displacement2.png. Compare the two approaches and resulting renders in your own words. Compare how your the two shaders react to mesh coarseness by modifying the number of vertical and horizontal components in t4-1-renderer.js and t4-2-renderer.js. These are controlled by the 2nd and 3rd arguments to the SphereBufferGeometry constructor.</p>
+
+        <p>Answer: I chose displacement3.png for this part. For bump mapping, we modify the normal vectors of an object so that the fragment shader gives the illusion of detail (such as bumps) on an object. For displacement mapping, we modify the position of vertices to reflect the height map in addition to modifying the normals to be consistent with the new geometry. In bump mapping, the texture is applied to the object but the position of vertices on the object remain the same. However, in displacement mapping, some vertex positions might be changed in order to show the "landscape". As the number of components get larger, the picture becomes more coarse. As the number of componentes gets smaller, the picture becomers more smooth.</p>
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                    <br>
+                        <td align="middle">
+                        <img src="part5/4/bump.png" width="480px" />
+                        <figcaption align="middle"> Bump mapping with 256 componenets(default) both vertically and horizontally.</figcaption>
+                    </br>
+                    <br>
+                        <td align="middle">
+                        <img src="part5/4/displacement.png" width="480px" />
+                        <figcaption align="middle"> Displacement mapping with 256 componenets(default) both vertically and horizontally.</figcaption>
+                    </br>
+                </tr>
+            </table>
+        </div>
+
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                    <br>
+                        <td align="middle">
+                        <img src="part5/4/32_b.png" width="480px" />
+                        <figcaption align="middle"> Bump mapping with 32 componenets both vertically and horizontally.</figcaption>
+                    </br>
+                    <br>
+                        <td align="middle">
+                        <img src="part5/4/32_d.png" width="480px" />
+                        <figcaption align="middle"> Displacement mapping with 32 componenets both vertically and horizontally.</figcaption>
+                    </br>
+                </tr>
+                <tr>
+                    <br>
+                        <td align="middle">
+                        <img src="part5/4/1024_b.png" width="480px" />
+                        <figcaption align="middle"> Bump mapping with 1024 componenets(default) both vertically and horizontally.</figcaption>
+                    </br>
+                    <br>
+                        <td align="middle">
+                        <img src="part5/4/1024_d.png" width="480px" />
+                        <figcaption align="middle"> Displacement mapping with 1024 componenets(default) both vertically and horizontally.</figcaption>
+                    </br>
+                </tr>
+            </table>
+        </div>
+
+    	<p>Explain what you did in your custom shader!</p>
+
+        <p>Answer: In my custom shader, I applied texture to the teapot and also set the light source.</p>
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                    <td align="middle">
+                    <img src="part5/5/earth_teapot.png" width="480px" />
+                    <figcaption align="middle">My earth_teapot custom shader.</figcaption>
+                </tr>
+            </table>
+        </div>
+        
+
+
+        <a href="gl/index.html"> The link to my gl directory.</a>
+</div>
+</body>
+</html>
+
+
+
+
+
+
